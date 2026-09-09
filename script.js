@@ -1,5 +1,5 @@
 // OpenWeatherMap API Configuration
-const API_KEY = 'demo'; // Replace with your actual API key from openweathermap.org
+const API_KEY = localStorage.getItem('openWeatherApiKey') || 'demo';
 const BASE_URL = 'https://api.openweathermap.org';
 
 // DOM Elements
@@ -13,6 +13,7 @@ const forecastSection = document.getElementById('forecastSection');
 const loadingSpinner = document.getElementById('loadingSpinner');
 const toast = document.getElementById('toast');
 const savedCitiesList = document.getElementById('savedCitiesList');
+const saveCityBtn = document.getElementById('saveCityBtn');
 
 // State
 let currentCity = null;
@@ -55,6 +56,13 @@ quickCityBtns.forEach(btn => {
     });
 });
 
+saveCityBtn.addEventListener('click', () => {
+    if (currentCity) {
+        saveCity(currentCity);
+        updateSaveButton();
+    }
+});
+
 /**
  * Fetch weather data from OpenWeatherMap API
  */
@@ -64,9 +72,15 @@ async function fetchWeather(city) {
     clearError();
 
     try {
-        // Check if API key is set
+        // Keep the published demo usable without exposing an API key.
         if (API_KEY === 'demo') {
-            throw new Error('Please get your free API key from https://openweathermap.org/api and update it in script.js');
+            const demoWeather = createDemoWeather(city);
+            currentCity = demoWeather;
+            displayCurrentWeather(demoWeather);
+            displayForecast(createDemoForecast(demoWeather));
+            localStorage.setItem('lastSearchedCity', city);
+            showToast('Showing demo weather data. Add an API key for live results.');
+            return;
         }
 
         // Fetch current weather
@@ -133,6 +147,7 @@ function displayCurrentWeather(data) {
     document.getElementById('weatherDesc').textContent = description;
     document.getElementById('feelsLike').textContent = `Feels like ${Math.round(feels_like)}°C`;
     document.getElementById('weatherIcon').textContent = getWeatherEmoji(icon);
+    updateSaveButton();
 
     // Update details
     document.getElementById('humidity').textContent = `${humidity}%`;
@@ -289,6 +304,14 @@ function saveCity(city) {
     }
 }
 
+function updateSaveButton() {
+    if (!currentCity) return;
+    const isSaved = savedCities.some(city => city.name.toLowerCase() === currentCity.name.toLowerCase());
+    saveCityBtn.textContent = isSaved ? '♥ Saved city' : '♡ Save city';
+    saveCityBtn.classList.toggle('saved', isSaved);
+    saveCityBtn.setAttribute('aria-pressed', String(isSaved));
+}
+
 /**
  * Remove city from favorites
  */
@@ -305,7 +328,12 @@ function removeCity(cityName) {
 function loadSavedCities() {
     const stored = localStorage.getItem('savedCities');
     if (stored) {
-        savedCities = JSON.parse(stored);
+        try {
+            savedCities = JSON.parse(stored);
+        } catch (error) {
+            console.error('Could not read saved cities:', error);
+            savedCities = [];
+        }
     }
 }
 
@@ -318,17 +346,54 @@ function displaySavedCities() {
         return;
     }
 
-    savedCitiesList.innerHTML = savedCities.map(city => `
+    savedCitiesList.innerHTML = savedCities.map((city, index) => `
         <div class="saved-city-card">
             <div class="saved-city-name">📍 ${city.name}</div>
             <div class="saved-city-temp">${city.temp}°C</div>
             <div class="saved-city-desc">${city.description}</div>
             <div class="saved-city-actions">
-                <button class="city-btn view" onclick="fetchWeather('${city.name}')">View</button>
-                <button class="city-btn delete" onclick="removeCity('${city.name}')">Delete</button>
+                <button class="city-btn view" data-city-index="${index}">View</button>
+                <button class="city-btn delete" data-city-index="${index}">Delete</button>
             </div>
         </div>
     `).join('');
+
+    savedCitiesList.querySelectorAll('.view').forEach(button => {
+        button.addEventListener('click', () => fetchWeather(savedCities[button.dataset.cityIndex].name));
+    });
+    savedCitiesList.querySelectorAll('.delete').forEach(button => {
+        button.addEventListener('click', () => removeCity(savedCities[button.dataset.cityIndex].name));
+    });
+}
+
+function createDemoWeather(city) {
+    const name = city.split(',')[0].trim() || 'Demo City';
+    return {
+        name,
+        sys: { country: 'DEMO', sunrise: 1710000000, sunset: 1710043200 },
+        main: { temp: 21, feels_like: 20, humidity: 58, pressure: 1014 },
+        weather: [{ main: 'Clear', description: 'clear skies', icon: '01d' }],
+        wind: { speed: 3.5, deg: 180 },
+        clouds: { all: 12 },
+        visibility: 10000
+    };
+}
+
+function createDemoForecast(weather) {
+    const start = Math.floor(Date.now() / 1000);
+    return {
+        list: Array.from({ length: 5 }, (_, index) => ({
+            dt: start + (index + 1) * 86400,
+            main: {
+                temp: 20 + index,
+                temp_min: 16 + index,
+                temp_max: 24 + index,
+                humidity: 55 + index
+            },
+            weather: [{ description: index % 2 ? 'partly cloudy' : 'clear skies', icon: index % 2 ? '02d' : '01d' }],
+            wind: { speed: 3 + index / 2 }
+        }))
+    };
 }
 
 console.log('🌦️ Weather Dashboard loaded successfully!');

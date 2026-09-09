@@ -17,11 +17,12 @@ A beautiful and interactive weather dashboard that fetches real-time weather dat
 
 ## 🚀 How to Use / Run
 
-### **Option 1: Quick Start (Online)**
-1. Go to your repository: https://github.com/Manish-tech543/Weather-Dashboard
-2. Click `index.html`
-3. Open it in your browser
-4. **BUT FIRST**: You need to set up your API key (see below)
+### **Option 1: GitHub Pages**
+The repository includes a Pages workflow that deploys the site from `main`. After the workflow completes, open:
+
+`https://manish-tech543.github.io/Weather-Dashboard/`
+
+If the URL returns 404, enable **Settings → Pages → Source: GitHub Actions** once in the repository settings, then rerun the workflow.
 
 ### **Option 2: Run Locally**
 ```bash
@@ -59,7 +60,7 @@ start index.html  # On Windows
 5. Refresh your browser and you're ready to go!
 
 ### **Alternative: Use the Demo Mode**
-If you don't have an API key yet, you can still explore the code structure. The app will show an error message guiding you to get a free API key.
+Without an API key, the published app automatically shows clearly labeled demo weather so the interface remains usable. Add a key for live results by setting `localStorage.openWeatherApiKey` in the browser console, or by replacing the `API_KEY` fallback in `script.js`.
 
 ---
 
@@ -103,6 +104,7 @@ View upcoming weather for the next 5 days with:
 
 ### **5. Save Favorite Cities**
 - Searched cities appear in "My Saved Cities" section
+- Click **"♡ Save city"** on the current weather card to add a favorite
 - Click **"View"** to see that city's weather again
 - Click **"Delete"** to remove from saved list
 - Saved cities persist even after closing the browser
