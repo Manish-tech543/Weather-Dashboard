@@ -103,6 +103,9 @@ async function fetchWeather(city) {
         // Fetch 5-day forecast
         const forecastUrl = `${BASE_URL}/data/2.5/forecast?q=${city}&appid=${API_KEY}&units=metric`;
         const forecastResponse = await fetch(forecastUrl);
+        if (!forecastResponse.ok) {
+            throw new Error('Forecast data is temporarily unavailable. Please try again.');
+        }
         const forecastData = await forecastResponse.json();
 
         // Display weather data
@@ -134,7 +137,8 @@ function displayCurrentWeather(data) {
         weather: [{ main, description, icon }],
         wind: { speed, deg },
         clouds: { all: cloudCover },
-        visibility
+        visibility,
+        timezone = 0
     } = data;
 
     // Update location info
@@ -156,8 +160,8 @@ function displayCurrentWeather(data) {
     document.getElementById('pressure').textContent = `${pressure} mb`;
     document.getElementById('visibility').textContent = `${(visibility / 1000).toFixed(1)} km`;
     document.getElementById('clouds').textContent = `${cloudCover}%`;
-    document.getElementById('sunrise').textContent = formatTime(sunrise * 1000);
-    document.getElementById('sunset').textContent = formatTime(sunset * 1000);
+    document.getElementById('sunrise').textContent = formatTime(sunrise * 1000, timezone);
+    document.getElementById('sunset').textContent = formatTime(sunset * 1000, timezone);
 
     // Show current weather section
     currentWeatherSection.classList.remove('hidden');
@@ -242,8 +246,13 @@ function getWindDirection(deg) {
 /**
  * Format unix timestamp to time
  */
-function formatTime(timestamp) {
-    return new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+function formatTime(timestamp, timezoneOffset = 0) {
+    const cityTime = new Date(timestamp + timezoneOffset * 1000);
+    return cityTime.toLocaleTimeString('en-US', {
+        timeZone: 'UTC',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
 /**
@@ -368,14 +377,18 @@ function displaySavedCities() {
 
 function createDemoWeather(city) {
     const name = city.split(',')[0].trim() || 'Demo City';
+    const today = new Date();
+    const sunrise = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 6);
+    const sunset = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 18);
     return {
         name,
-        sys: { country: 'DEMO', sunrise: 1710000000, sunset: 1710043200 },
+        sys: { country: 'DEMO', sunrise: sunrise / 1000, sunset: sunset / 1000 },
         main: { temp: 21, feels_like: 20, humidity: 58, pressure: 1014 },
         weather: [{ main: 'Clear', description: 'clear skies', icon: '01d' }],
         wind: { speed: 3.5, deg: 180 },
         clouds: { all: 12 },
-        visibility: 10000
+        visibility: 10000,
+        timezone: 0
     };
 }
 
